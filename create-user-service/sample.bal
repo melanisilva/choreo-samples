@@ -71,8 +71,14 @@ service / on new http:Listener(8090) {
             http:Response|http:ClientError scim2Response = asgardeoClient->post("/scim2/Users", newUserRequest);
 
             if (scim2Response is http:Response) {
-                // Forward the response directly to the caller
-                check caller->respond(scim2Response);
+                if (scim2Response.statusCode == 201) {
+                    // Forward the response directly to the caller with status code 201
+                    check caller->respond(scim2Response);
+                } else {
+                    // Forward the response without setting a specific status code
+                    json responseJson = check scim2Response.getJsonPayload();
+                    check caller->respond(responseJson);
+                }
             } else {
                 log:printError("Error calling SCIM2 Users endpoint: ", 'error = scim2Response);
                 json errorResponse = { "error": "Failed to create user at SCIM2 endpoint" };
